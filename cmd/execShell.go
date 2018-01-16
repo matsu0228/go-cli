@@ -33,10 +33,11 @@ var execShellCmd = &cobra.Command{
 
 func execSell() {
 	out, err := exec.Command("ls", "-la").Output()
+	// out, err := exec.Command("pwd").Output()
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(out)
+	fmt.Println(string(out))
 }
 func init() {
 	rootCmd.AddCommand(execShellCmd)

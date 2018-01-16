@@ -18,7 +18,9 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
 // filehandlerCmd represents the filehandler command
@@ -33,6 +35,7 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		filename := "test.txt"
+		fmt.Println(dirwalk("./cmd"))
 		readFile(filename)
 		moveFile("test.txt", "test_dst.txt")
 	},
@@ -51,6 +54,23 @@ func moveFile(srcName, dstName string) {
 	if err := os.Rename(srcName, dstName); err != nil {
 		fmt.Println(err)
 	}
+}
+
+func dirwalk(dir string) []string {
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		panic(err)
+	}
+
+	var paths []string
+	for _, file := range files {
+		if file.IsDir() {
+			paths = append(paths, dirwalk(filepath.Join(dir, file.Name()))...)
+			continue
+		}
+		paths = append(paths, filepath.Join(dir, file.Name()))
+	}
+	return paths
 }
 
 // tips
