@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/jlaffaye/ftp"
 	"github.com/spf13/cobra"
+	// "io"
 )
 
 // ftpCmd represents the ftp command
@@ -44,6 +45,10 @@ func connectFTP() {
 	defer client.Quit()
 	dir_name, _ := client.CurrentDir()
 	fmt.Println("ftp dir" + dir_name)
+
+	// TODO: search about Stor
+	// b, _ := io.ReadFile("./local.txt")
+	// client.Stor(dir_name+"test_dst.txt", b)
 }
 
 func init() {
