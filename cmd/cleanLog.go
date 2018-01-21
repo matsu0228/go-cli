@@ -92,21 +92,21 @@ func getChildFiles(dir string) []string {
 	return paths
 }
 
-func isTargetLog(filePath string, conf []string) string {
+func isTargetLog(filePath string, conf []string) bool {
 	// https://golang.org/pkg/syscall/#Stat_t
 	// var oldFiles []string
-	isTargetLogName := ""
+	isTargetLogCond := false
 	isSize, isTime := false, false // 各条件の判定
 	var s syscall.Stat_t
 	syscall.Stat(filePath, &s)
 
 	if _, err := os.Stat(filePath); err != nil { // isFile exist?
 		fmt.Println(err)
-		return isTargetLogName
+		return isTargetLogCond
 	}
 	if errMsg := validateFileformat(filePath); errMsg != "" {
 		fmt.Println(errMsg)
-		return isTargetLogName
+		return isTargetLogCond
 	}
 
 	if conf[ConfKeyMap["ConfSize"]] == "*" { // check Size
@@ -116,7 +116,7 @@ func isTargetLog(filePath string, conf []string) string {
 		if s.Size > condSize { // KB
 			isSize = true
 		}
-		fmt.Printf("size: %s > %s :>> %t\n", s.Size, condSize, isSize)
+		// fmt.Printf("size: %s > %s :>> %t\n", s.Size, condSize, isSize)
 	}
 	if conf[ConfKeyMap["ConfTime"]] == "*" { // check Time
 		isTime = true
@@ -127,17 +127,21 @@ func isTargetLog(filePath string, conf []string) string {
 		if fileTime.Before(logRimitTime) {                 // file>=logRimit --> !file<logRimit
 			isTime = true
 		}
-		fmt.Printf("time: %s before %s :>> %t\n", fileTime, logRimitTime, isTime)
+		// fmt.Printf("time: %s before %s :>> %t\n", fileTime, logRimitTime, isTime)
 	}
 	if isSize && isTime {
-		pos := strings.LastIndex(filePath, "/")
-		fmt.Printf("file: %v", filePath[:pos])
-		isTargetLogName = "File"
+		isTargetLogCond = true
 	}
-	return isTargetLogName
+	return isTargetLogCond
 }
-func moveLog(trgFileName, trgPath, dstPath string) { // you should add slash ('/') in last of Path (ex. **/**/)
-	if err := os.Rename(trgPath+trgFileName, dstPath+trgFileName); err != nil {
+
+func moveLog(trgFilePath, dstPath string) { // targFilePath is included filename
+	fmt.Printf("move: %s to %s \n", trgFilePath, dstPath)
+
+	pos := strings.LastIndex(trgFilePath, "/")
+	targetName := trgFilePath[pos+1:]
+	dstFilePath := strings.TrimRight(dstPath, "/") + "/" + targetName
+	if err := os.Rename(trgFilePath, dstFilePath); err != nil {
 		fmt.Println(err)
 	}
 }
@@ -169,12 +173,12 @@ var cleanLogCmd = &cobra.Command{
 			}
 			logs := getChildFiles(targetPath)
 			for _, logPath := range logs { // targetPath配下のファイルをすべてチェック
-				fmt.Println(logPath)
-				targetFile := isTargetLog(logPath, conf)
-				if targetFile != "" { // 条件を満たすファイルが存在した場合
+				// fmt.Println(logPath)
+				if isTargetLog(logPath, conf) { // 条件を満たすファイルが存在した場合
 					switch conf[ConfKeyMap["Mode"]] {
 					case "MOVE":
-						fmt.Println("MOVE")
+						fmt.Println("called MOVE")
+						moveLog(logPath, conf[ConfKeyMap["DstPath"]])
 					case "DELETE":
 						fmt.Println("DELETE")
 					}
