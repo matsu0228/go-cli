@@ -11,4 +11,5 @@
 *.out
 *.swp
 *.txt
+*.log
 *.csv

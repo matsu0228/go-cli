@@ -18,28 +18,8 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 )
-
-// filehandlerCmd represents the filehandler command
-var filehandlerCmd = &cobra.Command{
-	Use:   "filehandler",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		filename := "test.txt"
-		fmt.Println(dirwalk("./cmd"))
-		readFile(filename)
-		moveFile("test.txt", "test_dst.txt")
-	},
-}
 
 func moveFile(srcName, dstName string) {
 	if _, err := os.Stat(srcName); err != nil {
@@ -54,23 +34,6 @@ func moveFile(srcName, dstName string) {
 	if err := os.Rename(srcName, dstName); err != nil {
 		fmt.Println(err)
 	}
-}
-
-func dirwalk(dir string) []string {
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		panic(err)
-	}
-
-	var paths []string
-	for _, file := range files {
-		if file.IsDir() {
-			paths = append(paths, dirwalk(filepath.Join(dir, file.Name()))...)
-			continue
-		}
-		paths = append(paths, filepath.Join(dir, file.Name()))
-	}
-	return paths
 }
 
 // tips
@@ -98,6 +61,20 @@ func readFile(filename string) {
 	if err = scanner.Err(); err != nil {
 		fmt.Println(err)
 	}
+}
+
+// filehandlerCmd represents the filehandler command
+var filehandlerCmd = &cobra.Command{
+	Use:   "filehandler",
+	Short: "file handler",
+	Long:  "file handler. log cleaner",
+	Run: func(cmd *cobra.Command, args []string) {
+		// logs := getChildFiles("log/")
+		// fileHandler ---------------------
+		filename := "test.txt"
+		readFile(filename)
+		// moveFile("test.txt", "test_dst.txt")
+	},
 }
 
 func init() {
