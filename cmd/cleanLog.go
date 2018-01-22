@@ -17,9 +17,11 @@ package cmd
 import (
 	"encoding/csv"
 	"fmt"
+	"github.com/hashicorp/logutils"
 	"github.com/spf13/cobra"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -50,7 +52,7 @@ cmd= delete or move or zipmove
 */
 func readConfCsv(confFile string) ([]string, [][]string) {
 	var confData [][]string
-	fmt.Println("open conf file of '" + confFile + "' ")
+	warn("open conf file of '" + confFile + "' ")
 	fp, err := os.Open(confFile)
 	if err != nil {
 		fmt.Println(err)
@@ -165,10 +167,11 @@ var cleanLogCmd = &cobra.Command{
 		// readConf
 		_, confData := readConfCsv("clean_log.conf")
 		for _, conf := range confData {
-			fmt.Println(conf)
+			debug(fmt.Sprintln(conf))
+			warn(fmt.Sprintln(conf))
 			targetPath := conf[ConfKeyMap["TargetPath"]]
 			if _, err := os.Stat(targetPath); err != nil {
-				fmt.Println(err)
+				errorlog(fmt.Sprintln(err))
 				break
 			}
 			logs := getChildFiles(targetPath)
@@ -177,10 +180,10 @@ var cleanLogCmd = &cobra.Command{
 				if isTargetLog(logPath, conf) { // 条件を満たすファイルが存在した場合
 					switch conf[ConfKeyMap["Mode"]] {
 					case "MOVE":
-						fmt.Println("called MOVE")
+						debug("called MOVE")
 						moveLog(logPath, conf[ConfKeyMap["DstPath"]])
 					case "DELETE":
-						fmt.Println("DELETE")
+						debug("DELETE")
 					}
 				}
 			}
@@ -188,6 +191,17 @@ var cleanLogCmd = &cobra.Command{
 	},
 }
 
+func debug(msg string) {
+	log.Print("[DEBUG] " + msg)
+}
+func warn(msg string) {
+	log.Print("[WARN] " + msg)
+}
+
+// errorであってもerrであっても被ることが多いのでここだけはerrorlogにする
+func errorlog(msg string) {
+	log.Print("[ERROR] " + msg)
+}
 func init() {
 	rootCmd.AddCommand(cleanLogCmd)
 	ConfKeyMap = map[string]int{
@@ -197,4 +211,18 @@ func init() {
 		"CondTime":   3,
 		"CondSize":   4,
 	}
+
+	// log init
+	logfile, err := os.OpenFile("./cleanLog.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		panic("cannnot open test.log:" + err.Error())
+	}
+	defer logfile.Close()
+	filter := &logutils.LevelFilter{
+		Levels: []logutils.LogLevel{"DEBUG", "WARN", "ERROR"},
+		// MinLevel: logutils.LogLevel("DEBUG"), // for debug
+		MinLevel: logutils.LogLevel("WARN"),
+		Writer:   logfile, //os.Stderr,
+	}
+	log.SetOutput(filter)
 }
