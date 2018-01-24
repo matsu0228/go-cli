@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"compress/gzip"
 	"encoding/csv"
 	"fmt"
 	"github.com/hashicorp/logutils"
@@ -49,13 +50,15 @@ cmd= delete or move or zipmove
 2-3. exec mode function
 
 3. logging success
+
+4. test
 */
 func readConfCsv(confFile string) ([]string, [][]string) {
 	var confData [][]string
 	warn("open conf file of '" + confFile + "' ")
 	fp, err := os.Open(confFile)
 	if err != nil {
-		fmt.Println(err)
+		errorlog(fmt.Sprintln(err))
 	}
 	reader := csv.NewReader(fp)
 	defer fp.Close()
@@ -64,15 +67,15 @@ func readConfCsv(confFile string) ([]string, [][]string) {
 		record, err := reader.Read()
 		// fmt.Println(reflect.TypeOf(record))
 		if len(record) != len(ConfKeyMap) {
-			fmt.Printf("set %s colmuns. this line data is following\n", len(ConfKeyMap))
-			fmt.Println(record)
+			warn(fmt.Sprintf("set %s colmuns. this line data is following\n", len(ConfKeyMap)))
+			warn(fmt.Sprintln(record))
 		} else {
 			confData = append(confData, record)
 		}
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			fmt.Println(err)
+			errorlog(fmt.Sprintln(err))
 		}
 	}
 	return header, confData
@@ -81,7 +84,7 @@ func readConfCsv(confFile string) ([]string, [][]string) {
 func getChildFiles(dir string) []string {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
-		panic(err)
+		errorlog(fmt.Sprintln(err))
 	}
 	var paths []string
 	for _, file := range files {
@@ -96,7 +99,6 @@ func getChildFiles(dir string) []string {
 
 func isTargetLog(filePath string, conf []string) bool {
 	// https://golang.org/pkg/syscall/#Stat_t
-	// var oldFiles []string
 	isTargetLogCond := false
 	isSize, isTime := false, false // 各条件の判定
 	var s syscall.Stat_t
@@ -107,7 +109,7 @@ func isTargetLog(filePath string, conf []string) bool {
 		return isTargetLogCond
 	}
 	if errMsg := validateFileformat(filePath); errMsg != "" {
-		fmt.Println(errMsg)
+		errorlog(errMsg)
 		return isTargetLogCond
 	}
 
@@ -137,15 +139,9 @@ func isTargetLog(filePath string, conf []string) bool {
 	return isTargetLogCond
 }
 
-func moveLog(trgFilePath, dstPath string) { // targFilePath is included filename
-	fmt.Printf("move: %s to %s \n", trgFilePath, dstPath)
-
-	pos := strings.LastIndex(trgFilePath, "/")
-	targetName := trgFilePath[pos+1:]
-	dstFilePath := strings.TrimRight(dstPath, "/") + "/" + targetName
-	if err := os.Rename(trgFilePath, dstFilePath); err != nil {
-		fmt.Println(err)
-	}
+func getFilenameWithoutExtention(fileName string) string {
+	pos := strings.LastIndex(fileName, ".")
+	return fileName[:pos]
 }
 
 func validateFileformat(fileName string) string {
@@ -158,17 +154,86 @@ func validateFileformat(fileName string) string {
 	return errMsg
 }
 
-// cleanLogCmd represents the filehandler command
+func getFilenameFromPath(targetFilePath string) string {
+	pos := strings.LastIndex(targetFilePath, "/")
+	targetName := targetFilePath[pos+1:]
+	return targetName
+}
+
+func deleteLog(trgFilePath string) { // targFilePath is included filename
+	debug(fmt.Sprintf("delete: %s \n", trgFilePath))
+}
+func moveLog(trgFilePath, dstPath string) { // targFilePath is included filename
+	debug(fmt.Sprintf("move: %s to %s \n", trgFilePath, dstPath))
+	targetName := getFilenameFromPath(trgFilePath)
+	dstFilePath := strings.TrimRight(dstPath, "/") + "/" + targetName
+	if err := os.Rename(trgFilePath, dstFilePath); err != nil {
+		errorlog(fmt.Sprintln(err))
+	}
+}
+
+func deleteFile(trgFilePath string) {
+	if err := os.Remove(trgFilePath); err != nil {
+		errorlog(fmt.Sprintln(err))
+	}
+}
+func compressToGzip(trgFilePath, dstPath string) {
+	level := gzip.DefaultCompression
+	targetName := getFilenameFromPath(trgFilePath)
+	dstFilePath := strings.TrimRight(dstPath, "/") + "/" + targetName + ".gz" // targetFileName
+	file, err := os.Create(dstFilePath)
+	if err != nil { // setup out file
+		errorlog(fmt.Sprintln(err))
+	}
+	defer file.Close()
+	writer, err := gzip.NewWriterLevel(file, level)
+	if err != nil {
+		errorlog(fmt.Sprintln(err))
+	}
+	defer writer.Close()
+	// tw := tar.NewWriter(writer)
+	// defer tw.Close() // end setup put file
+
+	body, err := ioutil.ReadFile(trgFilePath)
+	if err != nil { // get org body
+		errorlog(fmt.Sprintln(err))
+	}
+	// if _, err := tw.Write(body); err != nil { // write gzip data
+	if _, err := writer.Write(body); err != nil { // write gzip data
+		errorlog(fmt.Sprintln(err))
+	} else { // 圧縮が成功したときだけ元ファイル削除
+		debug("success zip and delete:" + trgFilePath)
+		deleteFile(trgFilePath)
+	}
+}
+
+// cleanLogCmd represents the cleanLogfile command
 var cleanLogCmd = &cobra.Command{
 	Use:   "cleanLog",
 	Short: "clean log from conf",
 	Long:  "clean loger. you put conf file of 'clean_log.conf. format is following'",
 	Run: func(cmd *cobra.Command, args []string) {
+
+		// log init
+		logfile, err := os.OpenFile("./cleanLog.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+		if err != nil {
+			panic("cannnot open test.log:" + err.Error())
+		}
+		defer logfile.Close()
+		filter := &logutils.LevelFilter{
+			Levels: []logutils.LogLevel{"DEBUG", "WARN", "ERROR"},
+			// MinLevel: logutils.LogLevel("DEBUG"), // for debug
+			MinLevel: logutils.LogLevel("WARN"),
+			Writer:   logfile, //os.Stderr,
+		}
+		log.SetOutput(filter)
+		// end log int ------------------
+
 		// readConf
 		_, confData := readConfCsv("clean_log.conf")
+		warn(fmt.Sprintln("start batch"))
 		for _, conf := range confData {
 			debug(fmt.Sprintln(conf))
-			warn(fmt.Sprintln(conf))
 			targetPath := conf[ConfKeyMap["TargetPath"]]
 			if _, err := os.Stat(targetPath); err != nil {
 				errorlog(fmt.Sprintln(err))
@@ -176,14 +241,17 @@ var cleanLogCmd = &cobra.Command{
 			}
 			logs := getChildFiles(targetPath)
 			for _, logPath := range logs { // targetPath配下のファイルをすべてチェック
-				// fmt.Println(logPath)
 				if isTargetLog(logPath, conf) { // 条件を満たすファイルが存在した場合
 					switch conf[ConfKeyMap["Mode"]] {
 					case "MOVE":
-						debug("called MOVE")
+						debug("MOVE: " + logPath)
 						moveLog(logPath, conf[ConfKeyMap["DstPath"]])
+					case "ZIPMOVE":
+						debug("ZIPMOVE: " + logPath)
+						compressToGzip(logPath, conf[ConfKeyMap["DstPath"]])
 					case "DELETE":
-						debug("DELETE")
+						debug("DELETE: " + logPath)
+						deleteFile(logPath)
 					}
 				}
 			}
@@ -211,18 +279,4 @@ func init() {
 		"CondTime":   3,
 		"CondSize":   4,
 	}
-
-	// log init
-	logfile, err := os.OpenFile("./cleanLog.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		panic("cannnot open test.log:" + err.Error())
-	}
-	defer logfile.Close()
-	filter := &logutils.LevelFilter{
-		Levels: []logutils.LogLevel{"DEBUG", "WARN", "ERROR"},
-		// MinLevel: logutils.LogLevel("DEBUG"), // for debug
-		MinLevel: logutils.LogLevel("WARN"),
-		Writer:   logfile, //os.Stderr,
-	}
-	log.SetOutput(filter)
 }

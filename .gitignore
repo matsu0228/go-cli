@@ -12,4 +12,6 @@
 *.swp
 *.txt
 *.log
+*.gz
+*.zip
 *.csv
