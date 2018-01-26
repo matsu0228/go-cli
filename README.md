@@ -26,3 +26,15 @@ $ go-cli parsertest hoge -t 5
 ```
 
 
+# go test
+
+- sandbox/example
+- create *target_file*_test.go
+    - `import "testing"`
+- exec go test
+```
+go test packagePath  # cf. go test github.com/hoge/moge パッケージを指定
+go test -run ''      # カレントディレクトリ内の全てのテストを実行
+go test -run Foo     # Fooを含むテスト関数を実行
+```
+- ref: https://qiita.com/taizo/items/82930518430f940721a0
