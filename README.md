@@ -38,3 +38,4 @@ go test -run ''      # カレントディレクトリ内の全てのテストを
 go test -run Foo     # Fooを含むテスト関数を実行
 ```
 - ref: https://qiita.com/taizo/items/82930518430f940721a0
+- tableDrivenTests: https://github.com/golang/go/wiki/TableDrivenTests

@@ -70,7 +70,7 @@ func isTargetLog(filePath string, conf []string) bool {
 	syscall.Stat(filePath, &s)
 	if _, err := os.Stat(filePath); err != nil { // isFile exist?
 		fmt.Println(err)
-		return isTargetLogCondai
+		return isTargetLogCond
 	}
 	if errMsg := validateFileformat(filePath); errMsg != "" {
 		errorlog(errMsg)
