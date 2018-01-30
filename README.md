@@ -2,14 +2,14 @@
 
 - go cli with a library of `spf13/cobra`
 
-# how to build
+# how to compile
 
 ```
 $ pwd
 -> (your go-cli dir)
 
 $ go install go-cli
-$ go-cli
+$ go install github.com/matsu0228/go-cli
 
 ls $GOPATH\bin
 ```
