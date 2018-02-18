@@ -15,20 +15,14 @@
 package cmd
 
 import (
-	// "compress/gzip"
 	"encoding/csv"
 	"fmt"
 	"github.com/hashicorp/logutils"
 	"github.com/spf13/cobra"
 	"io"
-	// "io/ioutil"
 	"log"
 	"os"
-	// "path/filepath"
 	"strconv"
-	// "reflect"
-	// "strings"
-	"syscall"
 	"time"
 )
 
@@ -61,36 +55,35 @@ func readConfCsv(confFile string) ([]string, [][]string) {
 	return header, confData
 }
 
-// FileInfo: https://golang.org/pkg/syscall/#Stat_t
 // isTargetLog は、ファイルが処理対象のログファイルかどうか(cond_*を満たすか)判定する
 func isTargetLog(filePath string, conf []string) bool {
 	isTargetLogCond := false
 	isSize, isTime := false, false // 各条件の判定
-	var s syscall.Stat_t
-	syscall.Stat(filePath, &s)
-	if _, err := os.Stat(filePath); err != nil { // isFile exist?
-		fmt.Println(err)
-		return isTargetLogCond
-	}
 	if errMsg := validateFileformat(filePath); errMsg != "" {
 		errorlog(errMsg)
 		return isTargetLogCond
 	}
 
+	info, err := os.Stat(filePath) //file info
+	if err != nil {
+		errorlog(fmt.Sprintln(err))
+	}
+	fileTime := info.ModTime()
+	fileSize := info.Size()
+
 	if conf[ConfKeyMap["ConfSize"]] == "*" { // check Size
 		isSize = true
 	} else {
 		condSize, _ := strconv.ParseInt(conf[ConfKeyMap["CondSize"]], 10, 64)
-		if s.Size > condSize { // KB
+		if fileSize > condSize {
 			isSize = true
 		}
-		// debug(fmt.Sprintf("size: %s > %s :>> %t\n", s.Size, condSize, isSize))
+		// debug(fmt.Sprintf("size: %s > %s :>> %t\n", fileSize, condSize, isSize))
 	}
 	if conf[ConfKeyMap["ConfTime"]] == "*" { // check Time
 		isTime = true
 	} else {
 		condTime, _ := strconv.Atoi(conf[ConfKeyMap["CondTime"]])
-		fileTime := time.Unix(s.Mtim.Unix())
 		logRimitTime := time.Now().AddDate(0, 0, condTime) // https://ashitani.jp/golangtips/tips_time.html#time_Duration
 		if fileTime.Before(logRimitTime) {                 // file>=logRimit --> !file<logRimit
 			isTime = true
