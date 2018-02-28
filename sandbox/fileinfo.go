@@ -3,9 +3,16 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	// "syscall"
 	// "time"
 )
+
+func getFileName() {
+	d, f := filepath.Split("/home/dev/go-tutorial/.gitignore")
+	fmt.Println(d) // => "/hoge/"
+	fmt.Println(f) // => "piyo"
+}
 
 func getFileInfo(filePath string) []string {
 	info, err := os.Stat(filePath)
@@ -38,6 +45,7 @@ func getFileInfo(filePath string) []string {
 // }
 
 func main() {
+	getFileName()
 	aFileInfo := getFileInfo("test.txt")
 	fmt.Printf("info: %v", aFileInfo)
 }

@@ -18,7 +18,8 @@ var gotaCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("gota called")
 		// readbuffer()
-		df := readcsv()
+
+		df := readcsv(FileName)
 		// filter
 		fil := df.Filter(
 			dataframe.F{
@@ -32,10 +33,10 @@ var gotaCmd = &cobra.Command{
 }
 
 // https://godoc.org/github.com/kniren/gota/dataframe#ReadCSV
-func readcsv() dataframe.DataFrame {
-	fmt.Println("open file of '" + FileName + "' ")
+func readcsv(filename string) dataframe.DataFrame {
+	fmt.Println("open file of '" + filename + "' ")
 
-	fp, err := os.Open(FileName)
+	fp, err := os.Open(filename)
 	if err != nil {
 		fmt.Println(err)
 	}

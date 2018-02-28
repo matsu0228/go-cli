@@ -3,18 +3,44 @@ package cmd
 import (
 	"compress/gzip"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"strings"
 )
 
+func moveFileForWindows(trgFilePath, dstFilePath string) {
+	trgFile, err := os.Open(trgFilePath)
+	if err != nil {
+		errorlog(fmt.Sprintln(err))
+		return
+	}
+	if stat, err := os.Stat(dstFilePath); err == nil {
+		errorlog(fmt.Sprintf(dstFilePath+" is exist.", stat))
+		return
+	}
+	dstFile, err := os.Create(dstFilePath)
+	if err != nil {
+		errorlog(fmt.Sprintln(err))
+		return
+	}
+	defer dstFile.Close()
+	_, err = io.Copy(dstFile, trgFile) // windowsでは、異なるdrive間の移動ができないためコピーする
+	if err != nil {
+		errorlog(fmt.Sprintln(err))
+		return
+	}
+	trgFile.Close()
+	if err := os.Remove(trgFilePath); err != nil {
+		errorlog(fmt.Sprintln(err))
+	}
+}
+
 func moveLog(trgFilePath, dstPath string) { // targFilePath is included filename
 	debug(fmt.Sprintf("move: %s to %s \n", trgFilePath, dstPath))
 	targetName := getFilenameFromPath(trgFilePath)
 	dstFilePath := strings.TrimRight(dstPath, "/") + "/" + targetName
-	if err := os.Rename(trgFilePath, dstFilePath); err != nil {
-		errorlog(fmt.Sprintln(err))
-	}
+	moveFileForWindows(trgFilePath, dstFilePath)
 }
 
 func deleteFile(trgFilePath string) {

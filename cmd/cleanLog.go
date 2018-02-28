@@ -27,6 +27,7 @@ import (
 )
 
 var ConfKeyMap map[string]int
+var configFilePath, logFilePath string
 
 func readConfCsv(confFile string) ([]string, [][]string) {
 	var confData [][]string
@@ -102,12 +103,14 @@ var cleanLogCmd = &cobra.Command{
 	Short: "clean log from conf",
 	Long:  "clean loger. you put conf file of 'clean_log.conf. format is following'",
 	Run: func(cmd *cobra.Command, args []string) {
-
+		debug("exec with config of " + configFilePath + ", logging to " + logFilePath)
 		// log init  // TODO: define another function
-		logfile, err := os.OpenFile("./cleanLog.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+		logfile, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 		if err != nil {
-			panic("cannnot open test.log:" + err.Error())
+			panic("cannnot open >>" + logFilePath + "<<" + err.Error())
 		}
+		// ref: https://qiita.com/74th/items/441ffcab80a6a28f7ee3
+		// log.SetOutput(io.MultiWriter(logfile, os.Stdout))
 		defer logfile.Close()
 		filter := &logutils.LevelFilter{
 			Levels: []logutils.LogLevel{"DEBUG", "WARN", "ERROR"},
@@ -119,7 +122,7 @@ var cleanLogCmd = &cobra.Command{
 		// end log int ------------------
 
 		// readConf
-		_, confData := readConfCsv("clean_log.conf")
+		_, confData := readConfCsv(configFilePath)
 		warn(fmt.Sprintln("start batch"))
 		for _, conf := range confData {
 			debug(fmt.Sprintln(conf))
@@ -149,6 +152,8 @@ var cleanLogCmd = &cobra.Command{
 }
 
 func init() {
+	cleanLogCmd.Flags().StringVarP(&configFilePath, "config file path", "c", "", "path and filename of config")
+	cleanLogCmd.Flags().StringVarP(&logFilePath, "log path", "l", "", "path and filename for logging")
 	rootCmd.AddCommand(cleanLogCmd)
 	ConfKeyMap = map[string]int{
 		"TargetPath": 0,

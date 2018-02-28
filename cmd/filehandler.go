@@ -18,8 +18,39 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/spf13/cobra"
+	"io"
 	"os"
 )
+
+var dstFileName, trgFileName string
+
+func debugMoveFileForWindows(trgFileName, dstFileName string) {
+	fmt.Println("move from '" + trgFileName + "' to '" + dstFileName)
+	trgFile, err := os.Open(trgFileName)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if stat, err := os.Stat(dstFileName); err == nil {
+		fmt.Println(dstFileName+" is exist.", stat)
+		return
+	}
+	dstFile, err := os.Create(dstFileName)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer dstFile.Close()
+	_, err = io.Copy(dstFile, trgFile) // windowsでは、異なるdrive間の移動ができないためコピーする
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	trgFile.Close()
+	if err := os.Remove(trgFileName); err != nil {
+		fmt.Println(err)
+	}
+}
 
 func moveFile(srcName, dstName string) {
 	if _, err := os.Stat(srcName); err != nil {
@@ -30,7 +61,6 @@ func moveFile(srcName, dstName string) {
 		fmt.Println(dstName+" is exist.", stat)
 		return
 	}
-
 	if err := os.Rename(srcName, dstName); err != nil {
 		fmt.Println(err)
 	}
@@ -71,12 +101,18 @@ var filehandlerCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		// logs := getChildFiles("log/")
 		// fileHandler ---------------------
-		filename := "test.txt"
-		readFile(filename)
+		fmt.Println("move from '" + trgFileName + "' to '" + dstFileName)
+		debugMoveFileForWindows(trgFileName, dstFileName)
+		// fmt.Println("move from '" + trgFileName + "'")
+		// filename := "test.txt"
+		// readFile(FileName)
+		// moveFile(FileName)
 		// moveFile("test.txt", "test_dst.txt")
 	},
 }
 
 func init() {
+	filehandlerCmd.Flags().StringVarP(&trgFileName, "targget FileName", "t", "", "File name to move from")
+	filehandlerCmd.Flags().StringVarP(&dstFileName, "dstFileName", "d", "", "File name to move to")
 	rootCmd.AddCommand(filehandlerCmd)
 }

@@ -39,7 +39,9 @@ func validateFileformat(fileName string) string {
 }
 
 func getFilenameFromPath(targetFilePath string) string {
-	pos := strings.LastIndex(targetFilePath, "/")
-	targetName := targetFilePath[pos+1:]
-	return targetName
+	// pos := strings.LastIndex(targetFilePath, "/") //invalid in windows
+	// targetName := targetFilePath[pos+1:]
+	// d, f := filepath.Split(targetFilePath)
+	_, f := filepath.Split(targetFilePath)
+	return f
 }
