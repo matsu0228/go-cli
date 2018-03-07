@@ -28,12 +28,15 @@ func getFilenameWithoutExtention(fileName string) string {
 	return fileName[:pos]
 }
 
-func validateFileformat(fileName string) string {
+func validateFileformat(fileName, extension string) string {
 	errMsg := ""
+	if extension == "*" {
+		return errMsg
+	}
 	pos := strings.LastIndex(fileName, ".")
-	if fileName[pos:] != ".log" {
+	if fileName[pos:] != ("." + extension) {
 		// err = errors.New("this file extention is NOT log")
-		errMsg = "this file's extention is NOT log"
+		errMsg = "this file's extention is NOT " + extension
 	}
 	return errMsg
 }

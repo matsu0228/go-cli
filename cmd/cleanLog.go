@@ -42,8 +42,7 @@ func readConfCsv(confFile string) ([]string, [][]string) {
 	for {
 		record, err := reader.Read()
 		if len(record) != len(ConfKeyMap) {
-			warn(fmt.Sprintf("set %s colmuns. this line data is following\n", len(ConfKeyMap)))
-			warn(fmt.Sprintln(record))
+			warn(fmt.Sprintf("confファイルは、 %s カラム分セットしてください。該当行： %v", len(ConfKeyMap), record))
 		} else {
 			confData = append(confData, record)
 		}
@@ -59,11 +58,7 @@ func readConfCsv(confFile string) ([]string, [][]string) {
 // isTargetLog は、ファイルが処理対象のログファイルかどうか(cond_*を満たすか)判定する
 func isTargetLog(filePath string, conf []string) bool {
 	isTargetLogCond := false
-	isSize, isTime := false, false // 各条件の判定
-	if errMsg := validateFileformat(filePath); errMsg != "" {
-		errorlog(errMsg)
-		return isTargetLogCond
-	}
+	isSize, isTime, isExtension := false, false, false // 各条件の判定
 
 	info, err := os.Stat(filePath) //file info
 	if err != nil {
@@ -91,7 +86,13 @@ func isTargetLog(filePath string, conf []string) bool {
 		}
 		// debug(fmt.Sprintf("time: %s before %s :>> %t\n", fileTime, logRimitTime, isTime))
 	}
-	if isSize && isTime {
+
+	if errMsg := validateFileformat(filePath, conf[ConfKeyMap["Extension"]]); errMsg != "" { // check file extension
+		warn(errMsg)
+	} else {
+		isExtension = true
+	}
+	if isSize && isTime && isExtension {
 		isTargetLogCond = true
 	}
 	return isTargetLogCond
@@ -161,5 +162,6 @@ func init() {
 		"Mode":       2,
 		"CondTime":   3,
 		"CondSize":   4,
+		"Extension":  5,
 	}
 }
