@@ -1,9 +1,0 @@
-package: github.com/matsu0228/go-cli
-import:
-- package: github.com/kniren/gota
-  subpackages:
-  - dataframe
-- package: github.com/mitchellh/go-homedir
-- package: github.com/spf13/cobra
-- package: github.com/spf13/viper
-- package: github.com/hashicorp/logutils
