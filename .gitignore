@@ -3,6 +3,9 @@
 *.so
 *.dylib
 
+# ID/Password setting
+*.ini
+
 # Test binary, build with `go test -c`
 *.test
 

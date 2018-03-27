@@ -4,7 +4,7 @@
 
 * go-tutorial(公式)
 * チートシート: https://github.com/a8m/go-lang-cheat-sheet
-* 
+* goによるweb開発の基本(slide): https://www.slideshare.net/hico_horiuchi/goweb-58764875
 * 巨大なライブラリ集: https://github.com/avelino/awesome-go
 
 ## Goの開発環境
@@ -22,3 +22,32 @@
   * net/http: http通信のためのライブラリ
   * html/temlate or Ace: templateエンジン
 * logging: hashicorp/logutils
+
+### godep
+
+* install & setup
+```
+# go get でインストール
+go get -u github.com/golang/dep/cmd/dep
+
+# gopath配下のプロジェクトでないと、dep initできない
+go env
+```
+
+* 使い方
+```
+# 初期設定
+dep init
+
+# パッケージをvenderディレクトリ配下に作成
+dep ensure
+
+# 新しいパッケージを依存関係に追加しインストールを行う
+dep ensure -add github.com/foo/bar
+
+# パッケージをアップデートする
+dep ensure -update github.com/foo/bar
+
+# 現在の状態を出力する
+dep status
+```
